@@ -1,0 +1,179 @@
+<%- include('partials/header') %>
+
+<div class="todo-app">
+    <header class="app-header">
+        <h1><i class="fas fa-check-circle"></i> Ma Todo List</h1>
+        <div class="stats">
+            <span class="stat-item">
+                <i class="fas fa-list"></i> Total: <strong><%= stats.total %></strong>
+            </span>
+            <span class="stat-item">
+                <i class="fas fa-check"></i> Terminées: <strong><%= stats.completed %></strong>
+            </span>
+            <span class="stat-item">
+                <i class="fas fa-clock"></i> En cours: <strong><%= stats.pending %></strong>
+            </span>
+        </div>
+    </header>
+
+    <!-- Formulaire d'ajout -->
+    <div class="add-todo-form">
+        <form action="/todos" method="POST" id="addTodoForm">
+            <div class="form-group">
+                <input
+                    type="text"
+                    name="title"
+                    id="todoTitle"
+                    placeholder="Titre de la tâche *"
+                    required
+                    autocomplete="off"
+                >
+            </div>
+            <div class="form-group">
+                <textarea
+                    name="description"
+                    id="todoDescription"
+                    placeholder="Description (optionnel)"
+                    rows="2"
+                ></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Ajouter
+            </button>
+        </form>
+    </div>
+
+    <!-- Filtres -->
+    <div class="filters">
+        <a href="/?filter=all" class="filter-btn <%= filter === 'all' ? 'active' : '' %>">
+            <i class="fas fa-list"></i> Toutes
+        </a>
+        <a href="/?filter=pending" class="filter-btn <%= filter === 'pending' ? 'active' : '' %>">
+            <i class="fas fa-clock"></i> En cours
+        </a>
+        <a href="/?filter=completed" class="filter-btn <%= filter === 'completed' ? 'active' : '' %>">
+            <i class="fas fa-check"></i> Terminées
+        </a>
+
+        <% if (stats.completed > 0) { %>
+            <form action="/todos/delete-completed" method="POST" style="display: inline;">
+                <button type="submit" class="filter-btn btn-danger" onclick="return confirm('Supprimer toutes les tâches terminées ?')">
+                    <i class="fas fa-trash"></i> Vider terminées
+                </button>
+            </form>
+        <% } %>
+    </div>
+
+    <!-- Liste des tâches -->
+    <div class="todos-list">
+        <%
+        let filteredTodos = todos;
+        if (filter === 'pending') {
+            filteredTodos = todos.filter(todo => todo.completed === 0);
+        } else if (filter === 'completed') {
+            filteredTodos = todos.filter(todo => todo.completed === 1);
+        }
+        %>
+
+        <% if (filteredTodos.length === 0) { %>
+            <div class="empty-state">
+                <i class="fas fa-inbox fa-3x"></i>
+                <p>Aucune tâche à afficher</p>
+            </div>
+        <% } else { %>
+            <% filteredTodos.forEach(todo => { %>
+                <div class="todo-item <%= todo.completed ? 'completed' : '' %>" data-id="<%= todo.id %>">
+                    <div class="todo-content">
+                        <div class="toggle-form">
+                            <input
+                                type="checkbox"
+                                class="todo-checkbox"
+                                data-id="<%= todo.id %>"
+                                <%= todo.completed ? 'checked' : '' %>
+                            >
+                        </div>
+
+                        <div class="todo-text">
+                            <h3 class="todo-title"><%= todo.title %></h3>
+                            <% if (todo.description) { %>
+                                <p class="todo-description"><%= todo.description %></p>
+                            <% } %>
+                            <span class="todo-date">
+                                <i class="fas fa-calendar"></i>
+                                <%= new Date(todo.created_at).toLocaleDateString('fr-FR') %>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="todo-actions">
+                        <button
+                            class="btn-icon btn-edit"
+                            onclick="editTodo(<%= todo.id %>, '<%= todo.title.replace(/'/g, "\\'") %>', '<%= todo.description ? todo.description.replace(/'/g, "\\'") : '' %>', <%= todo.completed %>)"
+                            title="Modifier"
+                        >
+                            <i class="fas fa-edit"></i>
+                        </button>
+
+                        <form action="/todos/<%= todo.id %>/delete" method="POST" style="display: inline;">
+                            <button
+                                type="submit"
+                                class="btn-icon btn-delete"
+                                onclick="return confirm('Supprimer cette tâche ?')"
+                                title="Supprimer"
+                            >
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            <% }); %>
+        <% } %>
+    </div>
+</div>
+
+<!-- Modal de modification -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeEditModal()">&times;</span>
+        <h2><i class="fas fa-edit"></i> Modifier la tâche</h2>
+        <form id="editForm" method="POST">
+            <div class="form-group">
+                <label for="editTitle">Titre *</label>
+                <input
+                    type="text"
+                    name="title"
+                    id="editTitle"
+                    required
+                >
+            </div>
+            <div class="form-group">
+                <label for="editDescription">Description</label>
+                <textarea
+                    name="description"
+                    id="editDescription"
+                    rows="3"
+                ></textarea>
+            </div>
+            <div class="form-group checkbox-group">
+                <label>
+                    <input
+                        type="checkbox"
+                        name="completed"
+                        id="editCompleted"
+                    >
+                    Tâche terminée
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">
+                    Annuler
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Enregistrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<%- include('partials/footer') %>
